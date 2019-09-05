@@ -1,0 +1,4 @@
+node_modules/
+localStorage/
+package.json
+package-lock.json
