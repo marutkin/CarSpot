@@ -4,7 +4,8 @@ const formatCurrency = require('format-currency');
 
 const url = 'https://spb.autospot.ru/blog/carstock/rest/find';
 const opts = {format: '%s %v', symbol: '₽', locale: 'ru-RU'};
-const historyFileName = `./LocalStorage/requestHistory${new Date().getTime()}.json`;
+const fileExt = 'text';
+const historyFileName = `./LocalStorage/requestHistory${new Date().getTime()}.${fileExt}`;
 
 const regionsData = {
     msk: {id: 3, name: 'МСК'},
@@ -69,24 +70,18 @@ function writeInFile(msg) {
     });
 }
 
-function renderOutput(results, log = true) {
+function handleOutput(results, log = true) {
     for (let i = 0; i <= results.length; i++) {
         const msg = results[i];
-        const formattedMessage = formatOutputMessage(msg);
+        const formattedMessage = formatMessageToString(msg);
         if (log) {
             console.log(formattedMessage);
         }
-        if (i === 0) {
-            writeInFile(`[{ "${i}": ${JSON.stringify(formattedMessage)}},`);
-        } else if (i === results.length) {
-            writeInFile(`]`);
-        } else {
-            writeInFile(`{ "${i}": ${JSON.stringify(formattedMessage)}}`);
-        }
+        writeInFile(formattedMessage);
     }
 }
 
-function formatOutputMessage(car) {
+function formatMessageToString(car) {
     if (!car) {
         return;
     }
@@ -109,7 +104,7 @@ function formatResponse(json) {
     return result;
 }
 
-function handler(jsonList, isLowest = true) {
+function fetchHandler(jsonList, isLowest = true) {
     let result = [];
     let jsonListFormatted = jsonList.map(item => formatResponse(item));
 
@@ -121,10 +116,10 @@ function handler(jsonList, isLowest = true) {
         }
     });
 
-    return renderOutput(result);
+    return handleOutput(result);
 }
 
-function fetchOptions(options) {
+function fetchData(options) {
 
     let requests = [];
 
@@ -140,7 +135,7 @@ function fetchOptions(options) {
 
     Promise.all(requests)
     .then(resp => Promise.all(resp.map(r => r.json())))
-    .then(handler)
+    .then(fetchHandler)
     .catch(errorHandler);
 }
 
@@ -149,10 +144,10 @@ function start(region) {
     createFile();
 
     if (region === 'msk') {
-        return fetchOptions(options.msk);
+        return fetchData(options.msk);
     }
 
-    fetchOptions(options.spb);
+    fetchData(options.spb);
 }
 
 //start('spb');
