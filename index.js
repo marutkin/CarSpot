@@ -1,33 +1,62 @@
 const fs = require("fs");
 const fetch = require('node-fetch');
-const formatCurrency = require('format-currency')
+const formatCurrency = require('format-currency');
 
 const url = 'https://spb.autospot.ru/blog/carstock/rest/find';
-const opts = { format: '%s %v', symbol: '₽', locale: 'ru-RU' };
-const historyFileName = `./LocalStorage/requestHistory${new Date().getTime()}.txt`;
+const opts = {format: '%s %v', symbol: '₽', locale: 'ru-RU'};
+const historyFileName = `./LocalStorage/requestHistory${new Date().getTime()}.json`;
 
 const regionsData = {
+    msk: {id: 3, name: 'МСК'},
     spb: {id: 10, name: 'CПб'},
-    msk: {id: 3, name: 'МСК'}
 };
-const params = {
-    regions: regionsData.spb.id,
-    regions: regionsData.msk.id,
-    distance: 0
+const cars = {
+    volkswagen: {
+        polo: {distance: 0, slug: 'volkswagen/polo/sedan', brand_id: 'volkswagen'},
+        golf: {distance: 0, slug: 'volkswagen/golf/hatchback', brand_id: 'volkswagen'},
+    },
+    skoda: {
+        rapid: {distance: 0, slug: 'skoda/rapid/liftback', brand_id: 'skoda'},
+        octavia: {distance: 0, slug: 'skoda/octavia/liftback', brand_id: 'skoda'},
+        kodiaq: {distance: 0, slug: 'skoda/kodiaq/suv', brand_id: 'skoda'},
+
+    },
+    audi: {
+        a3: {distance: 0, slug: 'audi/a3/sedan', brand_id: 'audi'},
+        a4: {slug: 'audi/a4/sedan', brand_id: 'audi'},
+    },
+    bmw: {
+        thirdGt: {slug: 'bmw/3gt/hatchback', brand_id: 'bmw'},
+        third: {slug: 'bmw/3/sedan', brand_id: 'bmw'},
+        x1New: {slug: 'bmw/x1_generation/suv', brand_id: 'bmw'},
+        x1: {slug: 'bmw/x1/suv', brand_id: 'bmw'},
+        x3: {slug: 'bmw/x3/suv', brand_id: 'bmw'}
+    }
+};
+const carsList = (regionId) => {
+
+    const {audi, bmw, skoda, volkswagen} = cars;
+
+    const list = {
+        ...volkswagen,
+        ...audi,
+        ...bmw,
+        ...skoda
+    };
+
+    return Object.keys(list).map(item => {
+        return {...list[item], regions: regionId}
+    });
+
 };
 const options = {
-    a3: {...params, slug: 'audi/a3/sedan', brand_id: 'audi'},
-    a4: {...params, slug: 'audi/a4/sedan', brand_id: 'audi'},
-    thirdGt: {...params, slug: 'bmw/3gt/hatchback', brand_id: 'bmw'},
-    third: {...params, slug: 'bmw/3/sedan', brand_id: 'bmw'},
-    x1New: {...params, slug: 'bmw/x1_generation/suv', brand_id: 'bmw'},
-    x1: {...params, slug: 'bmw/x1/suv', brand_id: 'bmw'},
-    x3: {...params, slug: 'bmw/x3/suv', brand_id: 'bmw'}
+    msk: carsList(regionsData.msk.id),
+    spb: carsList(regionsData.spb.id),
 };
 
 function createFile() {
-    fs.writeFile(historyFileName, `${new Date()}`, function(err) {
-        if(err) {
+    fs.writeFile(historyFileName, '', function (err) {
+        if (err) {
             return console.log(err);
         }
         console.log("The file was saved!");
@@ -35,33 +64,44 @@ function createFile() {
 }
 
 function writeInFile(msg) {
-    fs.appendFile(historyFileName, msg, function(error) {
-        if(error) throw error;
+    fs.appendFile(historyFileName, msg, function (error) {
+        if (error) throw error;
     });
 }
 
-function renderOutput(msg) {
-    const formattedMessage = formatOutputMessage(msg);
-    writeInFile(formattedMessage);
-    console.log(formattedMessage);
+function renderOutput(results, log = true) {
+    for (let i = 0; i <= results.length; i++) {
+        const msg = results[i];
+        const formattedMessage = formatOutputMessage(msg);
+        if (log) {
+            console.log(formattedMessage);
+        }
+        if (i === 0) {
+            writeInFile(`[{ "${i}": ${JSON.stringify(formattedMessage)}},`);
+        } else if (i === results.length) {
+            writeInFile(`]`);
+        } else {
+            writeInFile(`{ "${i}": ${JSON.stringify(formattedMessage)}}`);
+        }
+    }
 }
 
 function formatOutputMessage(car) {
     if (!car) {
         return;
     }
-    const { brand, model, wheel, equipment_name, engine_type, color_name, price, regions } = car;
+    const {brand, model, wheel, equipment_name, engine_type, color_name, price: {value, discount}, regions} = car;
     const carSummary = `\n${brand.toLocaleUpperCase()} ${model} ${equipment_name}`;
-    const carPrice = `Цена: ${formatCurrency(price.value, opts)} | Скидка: ${formatCurrency(price.discount, opts)}`
+    const carPrice = `Цена: ${formatCurrency(value, opts)} | Скидка: ${formatCurrency(discount, opts)}`;
     const regionName = regions[regionsData.msk.id] ? regionsData.msk.name : regionsData.spb.name;
     return `${carSummary}\nРегион: ${regionName}\nПривод: ${wheel}\nДвигатель: ${engine_type}\nЦвет: ${color_name}\n${carPrice}\n`;
 }
 
-function formatResponce(json) {
+function formatResponse(json) {
     let result = [];
     if (json && json.items) {
         Object.keys(json.items).forEach((car) => {
-            const { items } = json.items[car];
+            const {items} = json.items[car];
             const collection = items[Object.keys(items)[0]].items;
             Object.keys(collection).forEach((item) => result.push(collection[item]));
         });
@@ -69,38 +109,51 @@ function formatResponce(json) {
     return result;
 }
 
-function handler(json, isLowest = true) {
+function handler(jsonList, isLowest = true) {
+    let result = [];
+    let jsonListFormatted = jsonList.map(item => formatResponse(item));
 
-    let result = formatResponce(json).sort((x,y) => x.price.value - y.price.value);
+    Object.keys(jsonListFormatted).forEach(item => {
+        if (isLowest) {
+            result = [...result, jsonListFormatted[item].sort(({price: xPrice}, {price: yPrice}) => xPrice.value - yPrice.value)[0]]
+        } else {
+            result = [...result, ...jsonListFormatted[item]]
+        }
+    });
 
-    if (isLowest) {
-        return renderOutput(result[0]);
-    } else {
-        result.forEach(car => renderOutput(car));
-    }
-
+    return renderOutput(result);
 }
 
 function fetchOptions(options) {
 
-    var requests = [];
+    let requests = [];
 
     const errorHandler = (error) => console.log('There has been a problem with your fetch operation: ' + error.message);
 
     Object.keys(options).forEach((option) => {
         requests.push(fetch(url, {
             method: 'post',
-            body:    JSON.stringify(options[option]),
-            headers: { 'Content-Type': 'application/json' },
-            }));
-    })
+            body: JSON.stringify(options[option]),
+            headers: {'Content-Type': 'application/json'},
+        }));
+    });
 
-    Promise.all(requests).then(promises => promises.forEach((promise) => promise.json().then(res => handler(res)).catch(errorHandler)))
-};
-
-function start() {
-    createFile();
-    fetchOptions(options);
+    Promise.all(requests)
+    .then(resp => Promise.all(resp.map(r => r.json())))
+    .then(handler)
+    .catch(errorHandler);
 }
 
-start();
+function start(region) {
+
+    createFile();
+
+    if (region === 'msk') {
+        return fetchOptions(options.msk);
+    }
+
+    fetchOptions(options.spb);
+}
+
+//start('spb');
+start('msk');
