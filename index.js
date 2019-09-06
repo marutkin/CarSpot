@@ -150,8 +150,8 @@
     function handleOutputHtml(results, maxDiscount, minPrice) {
         const jqueryCSS = '<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">';
         const header = '<header class="header__text"> Price parser results </header>';
-        const maxDiscountInfo = `<div class="col-sm-6 special-info"> <p>Самый выгодный вариант: </p> </h3>${maxDiscount.brand.toLocaleUpperCase()} ${maxDiscount.model}</h3> <h4>${maxDiscount.equipment_name}</h4> <h5>Цена: ${formatCurrency(maxDiscount.price.value, opts)}</h5> </div>`;
-        const minPriceInfo = `<div class="col-sm-6 special-info"> <p>Самый доступный вариант: </p> </h3>${minPrice.brand.toLocaleUpperCase()} ${minPrice.model}</h3> <h4>${minPrice.equipment_name}</h4> <h5>Цена: ${formatCurrency(minPrice.price.value, opts)}</h5> </div>`;
+        const maxDiscountInfo = `<div class="col-sm-6 special-info"> <p>Самый выгодный вариант: </p> </h3>${maxDiscount.brand.toLocaleUpperCase()} ${maxDiscount.model}</h3> <h4>${maxDiscount.equipment_name}</h4> <h5>Цена: ${formatCurrency(maxDiscount.price.value, opts)}</h5><h5>Скидка: ${formatCurrency(maxDiscount.price.discount, opts)}</h5> </div>`;
+        const minPriceInfo = `<div class="col-sm-6 special-info"> <p>Самый доступный вариант: </p> </h3>${minPrice.brand.toLocaleUpperCase()} ${minPrice.model}</h3> <h4>${minPrice.equipment_name}</h4> <h5>Цена: ${formatCurrency(minPrice.price.value, opts)}</h5><h5>Скидка: ${formatCurrency(maxDiscount.price.discount, opts)}</h5> </div>`;
         const specialInfo = `<div class="row special-info__wrap"> ${minPriceInfo} ${maxDiscountInfo} </div>`;
         const htmlUpperPart = `<html><head><meta charset="utf-8"> ${jqueryCSS} <link href="./Client/src/css/main.css" rel="stylesheet"></head><body><main class="container">${header} ${specialInfo}`;
         const htmlBottomPart = '</main></body></html>';
