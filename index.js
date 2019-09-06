@@ -74,16 +74,15 @@
     };
 
     function createFile() {
-        fs.writeFile(historyFileName, '', function (err) {
+        fs.writeFileSync(historyFileName, '', function (err) {
             if (err) {
                 return console.log(err);
             }
-            console.log("The file was saved!");
         });
     }
 
     function writeInFile(msg) {
-        fs.appendFile(historyFileName, msg, function (error) {
+        fs.appendFileSync(historyFileName, msg, function (error) {
             if (error) throw error;
         });
     }
@@ -131,16 +130,50 @@
 
         Object.keys(jsonListFormatted).forEach(item => {
             if (isLowest) {
-                result = [...result, jsonListFormatted[item].sort(({price: xPrice}, {price: yPrice}) => xPrice.value - yPrice.value)[0]]
+                result = [...result, jsonListFormatted[item].sort(({price: xPrice}, {price: yPrice}) => Number(xPrice.value) - Number(yPrice.value))[0]]
             } else {
                 result = [...result, ...jsonListFormatted[item]]
             }
         });
 
+        result = result.sort(({price: xPrice}, {price: yPrice}) => Number(xPrice.value) - Number(yPrice.value));
+
+        const maxDiscountCar = result.reduce((result, item) => {
+            let maxRest = result.length? result[0].price.discount: item.price.discount;
+
+            if (Number(item.price.discount) > Number(maxRest)) {
+                maxRest = item.price.discount;
+                result.length = 0;
+            }
+
+            if (Number(item.price.discount) === Number(maxRest)) {
+                result.push(item);
+            }
+
+            return result;
+        }, [])[0];
+
+        const minPriceCar = result.reduce((result, item) => {
+            let minRest = result.length? result[0].price.value: item.price.value;
+
+            if (Number(item.price.value) < Number(minRest)) {
+                minRest = item.price.value;
+                result.length = 0;
+            }
+
+            if (Number(item.price.value) === Number(minRest)) {
+                result.push(item);
+            }
+
+            return result;
+        }, [])[0];
+        writeInFile(`\nМинимальнцая цена: ${minPriceCar.model} ||| Цена: ${formatCurrency(minPriceCar.price.value, opts)} Скидка: ${formatCurrency(minPriceCar.price.discount, opts)}\n`);
+        writeInFile(`\nМаксимальная скидка: ${maxDiscountCar.model} ||| Цена: ${formatCurrency(maxDiscountCar.price.value, opts)} Скидка: ${formatCurrency(maxDiscountCar.price.discount, opts)}\n`);
+
         return handleOutput(result);
     }
 
-    function fetchData(options) {
+    async function fetchData(options) {
 
         let requests = [];
 
@@ -164,26 +197,29 @@
 
         createFile();
 
+        writeInFile(`Регион - ${region}\n`);
+
         return region === 'msk' ? fetchData(options(brand).msk) : fetchData(options(brand).spb);
 
     }
 
-
     global.CarParser = function CarParser() {
-        this.spbParse = (brand) => start('spb', brand);
-        this.mskParse = (brand) => start('msk', brand);
+        this.spbParse = async (brand) => start('spb', brand);
+        this.mskParse = async (brand) => start('msk', brand);
     }
 
 })();
 
 const parser = new CarParser();
 
+parser.spbParse('audi').then(() => parser.mskParse('audi'));
+
 //parser.spbParse('audi');
-// parser.spbParse('volkswagen');
-parser.spbParse('skoda');
+//parser.spbParse('volkswagen');
+//parser.spbParse('skoda');
 // parser.spbParse('bmw');
 
 // parser.mskParse('audi');
-//  parser.mskParse('volkswagen');
- parser.mskParse('skoda');
+//parser.mskParse('volkswagen');
+//parser.mskParse('skoda');
 // parser.mskParse('bmw');
