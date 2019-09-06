@@ -92,11 +92,11 @@
         if (!car) {
             return;
         }
-        const {brand, model, wheel, equipment_name, engine_type, color_name, price: {value, discount}, regions} = car;
+        const {brand, model, wheel, equipment_name, engine_type, color_name, price: {value, discount}, regions, transmission} = car;
         const carPrice = `Цена: ${formatCurrency(value, opts)} | Скидка: ${formatCurrency(discount, opts)}`;
         const carSummary = `\n${brand.toLocaleUpperCase()} ${model} ${equipment_name} |-|-| ${carPrice}`;
         const regionName = regions[regionsData.msk.id] ? regionsData.msk.name : regionsData.spb.name;
-        return `${carSummary}\nРегион: ${regionName}\nПривод: ${wheel}\nДвигатель: ${engine_type}\nЦвет: ${color_name}\n`;
+        return `${carSummary}\nКоробка: ${transmission}\nРегион: ${regionName}\nПривод: ${wheel}\nДвигатель: ${engine_type}\nЦвет: ${color_name}\n`;
     }
 
     function formatResponse(json) {
@@ -179,11 +179,11 @@
 const parser = new CarParser();
 
 //parser.spbParse('audi');
-parser.spbParse('volkswagen');
-// parser.spbParse('skoda');
+// parser.spbParse('volkswagen');
+parser.spbParse('skoda');
 // parser.spbParse('bmw');
 
 // parser.mskParse('audi');
-// parser.mskParse('volkswagen');
-// parser.mskParse('skoda');
+//  parser.mskParse('volkswagen');
+ parser.mskParse('skoda');
 // parser.mskParse('bmw');
