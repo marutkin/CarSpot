@@ -10,7 +10,7 @@
     const url = 'https://spb.autospot.ru/blog/carstock/rest/find';
     const opts = {format: '%s %v', symbol: '₽', locale: 'ru-RU'};
     const fileExt = 'html';
-    const historyFileName = `./LocalStorage/requestHistory${new Date().getTime()}.${fileExt}`;
+    const historyFileName = `./index.${fileExt}`;
 
     const regionsData = {
         msk: {id: 3, name: 'МСК'},
@@ -123,7 +123,7 @@
         const carPrice = `<div class="row__price"><h5>Цена: ${formatCurrency(value, opts)}</h5></div>`;
         const carDiscount = `<div class="row__price"><h5>Скидка: ${formatCurrency(discount, opts)}</h5></div>`;
         const mainImage = `<div class="image-wrap"><img class="row__image img-fluid" src="${image.face}"/></div>`;
-        const details = `<ul class="row__details"> <li>Коробка: ${transmission}</li> <li>Регион: ${regionName}</li> <li>Привод: ${wheel}</li> <li>Двигатель: ${engine_type}</li> <li>Цвет: ${color_name}</li> </ul>`
+        const details = `<ul class="row__details"> <li>Коробка: ${transmission}</li> <li>Регион: <b>${regionName}</b></li> <li>Привод: ${wheel}</li> <li>Двигатель: ${engine_type}</li> <li>Цвет: ${color_name}</li> </ul>`
 
         const leftColumn = `<div class="col-sm-6"> ${head} ${carPrice} ${carDiscount} ${mainImage} </div>`;
         const rightColumn = `<div class="col-sm-6 flex-center"> ${details} </div>`;
@@ -153,7 +153,7 @@
         const maxDiscountInfo = `<div class="col-sm-6 special-info"> <p>Самый выгодный вариант: </p> </h3>${maxDiscount.brand.toLocaleUpperCase()} ${maxDiscount.model}</h3> <h4>${maxDiscount.equipment_name}</h4> <h5>Цена: ${formatCurrency(maxDiscount.price.value, opts)}</h5> </div>`;
         const minPriceInfo = `<div class="col-sm-6 special-info"> <p>Самый доступный вариант: </p> </h3>${minPrice.brand.toLocaleUpperCase()} ${minPrice.model}</h3> <h4>${minPrice.equipment_name}</h4> <h5>Цена: ${formatCurrency(minPrice.price.value, opts)}</h5> </div>`;
         const specialInfo = `<div class="row special-info__wrap"> ${minPriceInfo} ${maxDiscountInfo} </div>`;
-        const htmlUpperPart = `<html><head><meta charset="utf-8"> ${jqueryCSS} <link href="../Client/src/css/main.css" rel="stylesheet"></head><body><main class="container">${header} ${specialInfo}`;
+        const htmlUpperPart = `<html><head><meta charset="utf-8"> ${jqueryCSS} <link href="./Client/src/css/main.css" rel="stylesheet"></head><body><main class="container">${header} ${specialInfo}`;
         const htmlBottomPart = '</main></body></html>';
         let htmlBodyCollection = '';
         for (let i = 0; i <= results.length; i++) {
@@ -167,7 +167,7 @@
         writeInFile(htmlUpperPart + htmlBodyCollection + htmlBottomPart);
     }
 
-    function fetchHandler(jsonList, isLowest = true, isHtmlOuput = true) {
+    function fetchHandler(jsonList, isLowest = true, isHtmlOutput = true) {
         let result = [];
         let jsonListFormatted = jsonList.map(item => formatResponse(item));
 
@@ -211,7 +211,7 @@
             return result;
         }, [])[0];
 
-        if (isHtmlOuput) {
+        if (isHtmlOutput) {
             handleOutputHtml(result, maxDiscountCar, minPriceCar);
         } else {
             handleOutputText(result);
@@ -258,8 +258,8 @@ const parser = new CarParser();
 // parser.spbParse();
 // parser.mskParse();
 
-parser.spbParse('audi');
-parser.spbParse('volkswagen');
+//parser.spbParse('audi');
+// parser.spbParse('volkswagen');
 parser.spbParse('skoda');
 // parser.spbParse('bmw');
 
