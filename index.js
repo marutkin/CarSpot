@@ -2,7 +2,7 @@
  * Parse car store API response and write data into the file.
  */
 (function () {
-    
+
     const fs = require("fs");
     const fetch = require('node-fetch');
     const formatCurrency = require('format-currency');
@@ -87,7 +87,7 @@
             if (error) throw error;
         });
     }
-    
+
     function formatMessageToString(car) {
         if (!car) {
             return;
@@ -114,18 +114,21 @@
     function fetchHandler(jsonList, isLowest = true) {
         let result = [];
         let jsonListFormatted = jsonList.map(item => formatResponse(item));
-        
+
         function handleOutput(results, log = true) {
             for (let i = 0; i <= results.length; i++) {
                 const msg = results[i];
                 const formattedMessage = formatMessageToString(msg);
+                if (!formattedMessage) {
+                    continue;
+                }
                 if (log) {
                     console.log(formattedMessage);
                 }
                 writeInFile(formattedMessage);
             }
         }
-        
+
         Object.keys(jsonListFormatted).forEach(item => {
             if (isLowest) {
                 result = [...result, jsonListFormatted[item].sort(({price: xPrice}, {price: yPrice}) => xPrice.value - yPrice.value)[0]]
@@ -175,11 +178,11 @@
 
 const parser = new CarParser();
 
-parser.spbParse('audi');
-// parser.spbParse('volkswagen');
+//parser.spbParse('audi');
+parser.spbParse('volkswagen');
 // parser.spbParse('skoda');
 // parser.spbParse('bmw');
- 
+
 // parser.mskParse('audi');
 // parser.mskParse('volkswagen');
 // parser.mskParse('skoda');
