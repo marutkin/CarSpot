@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Parse car store API response and write data into the file.
  */
 (function () {
@@ -9,7 +9,7 @@
 
     const url = 'https://spb.autospot.ru/blog/carstock/rest/find';
     const opts = {format: '%s %v', symbol: '₽', locale: 'ru-RU'};
-    const fileExt = 'text';
+    const fileExt = 'html';
     const historyFileName = `./LocalStorage/requestHistory${new Date().getTime()}.${fileExt}`;
 
     const regionsData = {
@@ -87,17 +87,6 @@
         });
     }
 
-    function formatMessageToString(car) {
-        if (!car) {
-            return;
-        }
-        const {brand, model, wheel, equipment_name, engine_type, color_name, price: {value, discount}, regions, transmission} = car;
-        const carPrice = `Цена: ${formatCurrency(value, opts)} | Скидка: ${formatCurrency(discount, opts)}`;
-        const carSummary = `\n${brand.toLocaleUpperCase()} ${model} ${equipment_name} |-|-| ${carPrice}`;
-        const regionName = regions[regionsData.msk.id] ? regionsData.msk.name : regionsData.spb.name;
-        return `${carSummary}\nКоробка: ${transmission}\nРегион: ${regionName}\nПривод: ${wheel}\nДвигатель: ${engine_type}\nЦвет: ${color_name}\n`;
-    }
-
     function formatResponse(json) {
         let result = [];
         if (json && json.items) {
@@ -110,23 +99,77 @@
         return result;
     }
 
-    function fetchHandler(jsonList, isLowest = true) {
+    function formatMessageToString(car) {
+        if (!car) {
+            return;
+        }
+        const {brand, model, wheel, equipment_name, engine_type, color_name, price: {value, discount}, regions, transmission} = car;
+        const carPrice = `Цена: ${formatCurrency(value, opts)} | Скидка: ${formatCurrency(discount, opts)}`;
+        const carSummary = `\n${brand.toLocaleUpperCase()} ${model} ${equipment_name} |-|-| ${carPrice}`;
+        const regionName = regions[regionsData.msk.id] ? regionsData.msk.name : regionsData.spb.name;
+        return `${carSummary}\nКоробка: ${transmission}\nРегион: ${regionName}\nПривод: ${wheel}\nДвигатель: ${engine_type}\nЦвет: ${color_name}\n`;
+    }
+
+    function formatMessageToHtmlString(car) {
+
+        if (!car) {
+            return;
+        }
+
+        const {brand, model, wheel, equipment_name, engine_type, color_name, price: {value, discount}, regions, transmission, image} = car;
+        const regionName = regions[regionsData.msk.id] ? regionsData.msk.name : regionsData.spb.name;
+
+        const head = `<div class="row__head"><h3>${brand.toLocaleUpperCase()} ${model}</h3> <h4>${equipment_name}</h4> </div>`;
+        const carPrice = `<div class="row__price"><h5>Цена: ${formatCurrency(value, opts)}</h5></div>`;
+        const carDiscount = `<div class="row__price"><h5>Скидка: ${formatCurrency(discount, opts)}</h5></div>`;
+        const mainImage = `<div class="image-wrap"><img class="row__image img-fluid" src="${image.face}"/></div>`;
+        const details = `<ul class="row__details"> <li>Коробка: ${transmission}</li> <li>Регион: ${regionName}</li> <li>Привод: ${wheel}</li> <li>Двигатель: ${engine_type}</li> <li>Цвет: ${color_name}</li> </ul>`
+
+        const leftColumn = `<div class="col-sm-6"> ${head} ${carPrice} ${carDiscount} ${mainImage} </div>`;
+        const rightColumn = `<div class="col-sm-6 flex-center"> ${details} </div>`;
+
+        return `<div class="row"> ${leftColumn} ${rightColumn} </div>`;
+
+    }
+
+
+    function handleOutputText(results, log = true) {
+        for (let i = 0; i <= results.length; i++) {
+            const msg = results[i];
+            const formattedMessage = formatMessageToString(msg);
+            if (!formattedMessage) {
+                continue;
+            }
+            if (log) {
+                console.log(formattedMessage);
+            }
+            writeInFile(formattedMessage);
+        }
+    }
+
+    function handleOutputHtml(results, maxDiscount, minPrice) {
+        const jqueryCSS = '<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">';
+        const header = '<header class="header__text"> Price parser results </header>';
+        const maxDiscountInfo = `<div class="col-sm-6 special-info"> <p>Самый выгодный вариант: </p> </h3>${maxDiscount.brand.toLocaleUpperCase()} ${maxDiscount.model}</h3> <h4>${maxDiscount.equipment_name}</h4> <h5>Цена: ${formatCurrency(maxDiscount.price.value, opts)}</h5> </div>`;
+        const minPriceInfo = `<div class="col-sm-6 special-info"> <p>Самый доступный вариант: </p> </h3>${minPrice.brand.toLocaleUpperCase()} ${minPrice.model}</h3> <h4>${minPrice.equipment_name}</h4> <h5>Цена: ${formatCurrency(minPrice.price.value, opts)}</h5> </div>`;
+        const specialInfo = `<div class="row special-info__wrap"> ${minPriceInfo} ${maxDiscountInfo} </div>`;
+        const htmlUpperPart = `<html><head><meta charset="utf-8"> ${jqueryCSS} <link href="../Client/src/css/main.css" rel="stylesheet"></head><body><main class="container">${header} ${specialInfo}`;
+        const htmlBottomPart = '</main></body></html>';
+        let htmlBodyCollection = '';
+        for (let i = 0; i <= results.length; i++) {
+            const node = results[i];
+            const formattedMessage = formatMessageToHtmlString(node);
+            if (!formattedMessage) {
+                continue;
+            }
+            htmlBodyCollection = htmlBodyCollection + formattedMessage;
+        }
+        writeInFile(htmlUpperPart + htmlBodyCollection + htmlBottomPart);
+    }
+
+    function fetchHandler(jsonList, isLowest = true, isHtmlOuput = true) {
         let result = [];
         let jsonListFormatted = jsonList.map(item => formatResponse(item));
-
-        function handleOutput(results, log = true) {
-            for (let i = 0; i <= results.length; i++) {
-                const msg = results[i];
-                const formattedMessage = formatMessageToString(msg);
-                if (!formattedMessage) {
-                    continue;
-                }
-                if (log) {
-                    console.log(formattedMessage);
-                }
-                writeInFile(formattedMessage);
-            }
-        }
 
         Object.keys(jsonListFormatted).forEach(item => {
             if (isLowest) {
@@ -167,13 +210,15 @@
 
             return result;
         }, [])[0];
-        writeInFile(`\nМинимальнцая цена: ${minPriceCar.model} ||| Цена: ${formatCurrency(minPriceCar.price.value, opts)} Скидка: ${formatCurrency(minPriceCar.price.discount, opts)}\n`);
-        writeInFile(`\nМаксимальная скидка: ${maxDiscountCar.model} ||| Цена: ${formatCurrency(maxDiscountCar.price.value, opts)} Скидка: ${formatCurrency(maxDiscountCar.price.discount, opts)}\n`);
 
-        return handleOutput(result);
+        if (isHtmlOuput) {
+            handleOutputHtml(result, maxDiscountCar, minPriceCar);
+        } else {
+            handleOutputText(result);
+        }
     }
 
-    async function fetchData(options) {
+    function fetchData(options) {
 
         let requests = [];
 
@@ -197,29 +242,28 @@
 
         createFile();
 
-        writeInFile(`Регион - ${region}\n`);
-
         return region === 'msk' ? fetchData(options(brand).msk) : fetchData(options(brand).spb);
 
     }
 
     global.CarParser = function CarParser() {
-        this.spbParse = async (brand) => start('spb', brand);
-        this.mskParse = async (brand) => start('msk', brand);
+        this.spbParse = (brand) => start('spb', brand);
+        this.mskParse = (brand) => start('msk', brand);
     }
 
 })();
 
 const parser = new CarParser();
 
-parser.spbParse('audi').then(() => parser.mskParse('audi'));
+// parser.spbParse();
+// parser.mskParse();
 
-//parser.spbParse('audi');
-//parser.spbParse('volkswagen');
-//parser.spbParse('skoda');
+parser.spbParse('audi');
+parser.spbParse('volkswagen');
+parser.spbParse('skoda');
 // parser.spbParse('bmw');
 
 // parser.mskParse('audi');
-//parser.mskParse('volkswagen');
-//parser.mskParse('skoda');
+// parser.mskParse('volkswagen');
+// parser.mskParse('skoda');
 // parser.mskParse('bmw');

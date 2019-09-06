@@ -1,0 +1,45 @@
+
+body {
+    background-image: linear-gradient(to top, #fbc2eb 0%, #a6c1ee 100%);
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    flex-flow: column nowrap;
+    align-items: center;
+}
+
+.row {
+    margin: 3.5rem 0;
+    width: 75%;
+}
+
+.flex-center {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header__text {
+    font-size: 2rem;
+    width: 80%;
+    text-align: right;
+    height: 3rem;
+    position: relative;
+    top: 25px;
+    right: -15px;
+    text-transform: uppercase;
+    background-color: #03f7f754;
+    border-radius: 8px;
+    padding: 0 2rem;
+}
+
+.special-info__wrap {
+    width: 75%;
+}
+
+.special-info {
+    font-size:  1rem;
+}
+
